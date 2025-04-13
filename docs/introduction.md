@@ -1,19 +1,12 @@
-# Sport Community
+# Introduction
+
+---
 
 ## Table of Contents <!-- omit in toc -->
 
-- [Getting Started](#getting-started)
 - [Features](#features)
 
-## Getting Started
-
-First, run the development server:
-
-```bash
-cp example.env.local .env.local
-
-pnpm run dev
-```
+---
 
 ## Features
 
@@ -29,3 +22,9 @@ pnpm run dev
 - [x] E2E tests ([Playwright](https://playwright.dev/))
 - [x] ESLint
 - [x] CI (GitHub Actions)
+
+---
+
+Previous: [Main](README.md)
+
+Next: [Installing and Running](installing-and-running.md)
