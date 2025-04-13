@@ -1,4 +1,3 @@
-import ResponsiveAppBar from "@/components/app-bar";
 import AuthProvider from "@/services/auth/auth-provider";
 import "../globals.css";
 import "@fontsource/roboto/300.css";
@@ -22,6 +21,9 @@ import GoogleAuthProvider from "@/services/social-auth/google/google-auth-provid
 import FacebookAuthProvider from "@/services/social-auth/facebook/facebook-auth-provider";
 import ConfirmDialogProvider from "@/components/confirm-dialog/confirm-dialog-provider";
 import InitColorSchemeScript from "@/components/theme/init-color-scheme-script";
+import { headers } from "next/headers";
+import MainLayout from "@/components/layout/MainLayout";
+import { isAuthPath } from "@/components/layout/utils";
 
 type Props = {
   params: Promise<{ language: string }>;
@@ -45,10 +47,15 @@ export default async function RootLayout(props: {
   params: Promise<{ language: string }>;
 }) {
   const params = await props.params;
-
   const { language } = params;
-
   const { children } = props;
+
+  // Get the current path from headers
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") || "";
+
+  // Determine if the current path is an auth path
+  const isAuthRoute = isAuthPath(pathname);
 
   return (
     <html lang={language} dir={dir(language)} suppressHydrationWarning>
@@ -65,12 +72,18 @@ export default async function RootLayout(props: {
                   <GoogleAuthProvider>
                     <FacebookAuthProvider>
                       <LeavePageProvider>
-                        <ResponsiveAppBar />
-                        {children}
-                        <ToastContainer
-                          position="bottom-left"
-                          hideProgressBar
-                        />
+                        {/* We don't wrap the auth routes in MainLayout */}
+                        {isAuthRoute ? (
+                          children
+                        ) : (
+                          <MainLayout>
+                            {children}
+                            <ToastContainer
+                              position="bottom-left"
+                              hideProgressBar
+                            />
+                          </MainLayout>
+                        )}
                       </LeavePageProvider>
                     </FacebookAuthProvider>
                   </GoogleAuthProvider>
