@@ -21,11 +21,21 @@ import {
   getTokensInfo,
   setTokensInfo as setTokensInfoToStorage,
 } from "./auth-tokens-info";
+import {
+  useAuthLoginService,
+  useAuthSignUpService,
+  useAuthGoogleLoginService,
+  useAuthFacebookLoginService,
+} from "../api/services/auth";
 
 function AuthProvider(props: PropsWithChildren<{}>) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const fetchBase = useFetch();
+  const loginService = useAuthLoginService();
+  const signUpService = useAuthSignUpService();
+  const googleLoginService = useAuthGoogleLoginService();
+  const facebookLoginService = useAuthFacebookLoginService();
 
   const setTokensInfo = useCallback((tokensInfo: TokensInfo) => {
     setTokensInfoToStorage(tokensInfo);
@@ -39,12 +49,152 @@ function AuthProvider(props: PropsWithChildren<{}>) {
     const tokens = getTokensInfo();
 
     if (tokens?.token) {
-      await fetchBase(AUTH_LOGOUT_URL, {
-        method: "POST",
-      });
+      try {
+        await fetchBase(AUTH_LOGOUT_URL, {
+          method: "POST",
+        });
+      } catch (error) {
+        console.error("Logout error:", error);
+      } finally {
+        setTokensInfo(null);
+      }
+    } else {
+      setTokensInfo(null);
     }
-    setTokensInfo(null);
   }, [setTokensInfo, fetchBase]);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      try {
+        const data = await loginService(email, password);
+
+        if (data.token && data.user) {
+          const tokensInfo = {
+            token: data.token,
+            refreshToken: data.refreshToken,
+            tokenExpires: Date.now() + 3600 * 1000, // Default to 1 hour if not provided by API
+          };
+
+          setTokensInfo(tokensInfo);
+          setUser(data.user);
+          return { success: true, user: data.user };
+        } else {
+          return {
+            success: false,
+            error: data.message || "Login failed",
+          };
+        }
+      } catch (error) {
+        console.error("Login error:", error);
+        return {
+          success: false,
+          error: "An error occurred during login",
+        };
+      }
+    },
+    [loginService, setTokensInfo]
+  );
+
+  const register = useCallback(
+    async (
+      email: string,
+      password: string,
+      firstName: string,
+      lastName: string
+    ) => {
+      try {
+        const data = await signUpService(email, password, firstName, lastName);
+
+        if (data.token && data.user) {
+          const tokensInfo = {
+            token: data.token,
+            refreshToken: data.refreshToken,
+            tokenExpires: Date.now() + 3600 * 1000, // Default to 1 hour if not provided by API
+          };
+
+          setTokensInfo(tokensInfo);
+          setUser(data.user);
+          return { success: true, user: data.user };
+        } else {
+          return {
+            success: false,
+            error: data.message || "Registration failed",
+          };
+        }
+      } catch (error) {
+        console.error("Registration error:", error);
+        return {
+          success: false,
+          error: "An error occurred during registration",
+        };
+      }
+    },
+    [signUpService, setTokensInfo]
+  );
+
+  const googleLogin = useCallback(
+    async (token: string) => {
+      try {
+        const data = await googleLoginService(token);
+
+        if (data.token && data.user) {
+          const tokensInfo = {
+            token: data.token,
+            refreshToken: data.refreshToken,
+            tokenExpires: Date.now() + 3600 * 1000, // Default to 1 hour if not provided by API
+          };
+
+          setTokensInfo(tokensInfo);
+          setUser(data.user);
+          return { success: true, user: data.user };
+        } else {
+          return {
+            success: false,
+            error: data.message || "Google login failed",
+          };
+        }
+      } catch (error) {
+        console.error("Google login error:", error);
+        return {
+          success: false,
+          error: "An error occurred during Google login",
+        };
+      }
+    },
+    [googleLoginService, setTokensInfo]
+  );
+
+  const facebookLogin = useCallback(
+    async (token: string) => {
+      try {
+        const data = await facebookLoginService(token);
+
+        if (data.token && data.user) {
+          const tokensInfo = {
+            token: data.token,
+            refreshToken: data.refreshToken,
+            tokenExpires: Date.now() + 3600 * 1000, // Default to 1 hour if not provided by API
+          };
+
+          setTokensInfo(tokensInfo);
+          setUser(data.user);
+          return { success: true, user: data.user };
+        } else {
+          return {
+            success: false,
+            error: data.message || "Facebook login failed",
+          };
+        }
+      } catch (error) {
+        console.error("Facebook login error:", error);
+        return {
+          success: false,
+          error: "An error occurred during Facebook login",
+        };
+      }
+    },
+    [facebookLoginService, setTokensInfo]
+  );
 
   const loadData = useCallback(async () => {
     const tokens = getTokensInfo();
@@ -63,6 +213,9 @@ function AuthProvider(props: PropsWithChildren<{}>) {
         const data = await response.json();
         setUser(data);
       }
+    } catch (error) {
+      console.error("Error loading user data:", error);
+      logOut();
     } finally {
       setIsLoaded(true);
     }
@@ -84,8 +237,12 @@ function AuthProvider(props: PropsWithChildren<{}>) {
     () => ({
       setUser,
       logOut,
+      login,
+      register,
+      googleLogin,
+      facebookLogin,
     }),
-    [logOut]
+    [logOut, login, register, googleLogin, facebookLogin]
   );
 
   const contextTokensValue = useMemo(
