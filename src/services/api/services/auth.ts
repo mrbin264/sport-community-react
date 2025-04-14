@@ -42,10 +42,10 @@ export function useAuthLoginService() {
   const fetchBase = useFetch();
 
   return useCallback(
-    async (email: string, password: string) => {
+    async (formData: { email: string; password: string }) => {
       const response = await fetchBase(AUTH_EMAIL_LOGIN_URL, {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(formData),
       });
 
       return await response.json();

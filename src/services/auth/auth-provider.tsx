@@ -66,7 +66,7 @@ function AuthProvider(props: PropsWithChildren<{}>) {
   const login = useCallback(
     async (email: string, password: string) => {
       try {
-        const data = await loginService(email, password);
+        const data = await loginService({ email, password });
 
         if (data.token && data.user) {
           const tokensInfo = {

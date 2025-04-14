@@ -45,5 +45,10 @@
       }
     }
   },
+  "success": {
+    "title": "Registration Successful!",
+    "message": "Your account has been created successfully. Please check your email to verify your account before signing in.",
+    "goToLogin": "Go to Login"
+  },
   "or": "OR"
 }

@@ -25,6 +25,7 @@ import Chip from "@mui/material/Chip";
 import SocialAuth from "@/services/social-auth/social-auth";
 import { isGoogleAuthEnabled } from "@/services/social-auth/google/google-config";
 import { isFacebookAuthEnabled } from "@/services/social-auth/facebook/facebook-config";
+import { useState } from "react";
 
 type TPolicy = {
   id: string;
@@ -91,6 +92,7 @@ function Form() {
   const policyOptions = [
     { id: "policy", name: t("sign-up:inputs.policy.agreement") },
   ];
+  const [signUpSuccess, setSignUpSuccess] = useState(false);
 
   const methods = useForm<SignUpFormData>({
     resolver: yupResolver(validationSchema),
@@ -106,8 +108,12 @@ function Form() {
   const { handleSubmit, setError } = methods;
 
   const onSubmit = handleSubmit(async (formData) => {
-    const { data: dataSignUp, status: statusSignUp } =
-      await fetchAuthSignUp(formData);
+    const { data: dataSignUp, status: statusSignUp } = await fetchAuthSignUp(
+      formData.email,
+      formData.password,
+      formData.firstName,
+      formData.lastName
+    );
 
     if (statusSignUp === HTTP_CODES_ENUM.UNPROCESSABLE_ENTITY) {
       (Object.keys(dataSignUp.errors) as Array<keyof SignUpFormData>).forEach(
@@ -120,24 +126,62 @@ function Form() {
           });
         }
       );
-
       return;
     }
 
-    const { data: dataSignIn, status: statusSignIn } = await fetchAuthLogin({
-      email: formData.email,
-      password: formData.password,
-    });
+    // If registration is successful (204 No Content)
+    if (statusSignUp === HTTP_CODES_ENUM.NO_CONTENT) {
+      setSignUpSuccess(true);
+      return;
+    }
 
-    if (statusSignIn === HTTP_CODES_ENUM.OK) {
-      setTokensInfo({
-        token: dataSignIn.token,
-        refreshToken: dataSignIn.refreshToken,
-        tokenExpires: dataSignIn.tokenExpires,
+    // Try to login only if registration returned user data directly
+    // This is kept for backward compatibility
+    if (
+      statusSignUp === HTTP_CODES_ENUM.CREATED ||
+      statusSignUp === HTTP_CODES_ENUM.OK
+    ) {
+      const { data: dataSignIn, status: statusSignIn } = await fetchAuthLogin({
+        email: formData.email,
+        password: formData.password,
       });
-      setUser(dataSignIn.user);
+
+      if (statusSignIn === HTTP_CODES_ENUM.OK) {
+        setTokensInfo({
+          token: dataSignIn.token,
+          refreshToken: dataSignIn.refreshToken,
+          tokenExpires: dataSignIn.tokenExpires,
+        });
+        setUser(dataSignIn.user);
+      }
     }
   });
+
+  if (signUpSuccess) {
+    return (
+      <Container maxWidth="xs">
+        <Grid container spacing={2} mb={2}>
+          <Grid size={{ xs: 12 }} mt={3}>
+            <Typography variant="h6">{t("sign-up:success.title")}</Typography>
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            <Typography>{t("sign-up:success.message")}</Typography>
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              LinkComponent={Link}
+              href="/sign-in"
+              data-testid="go-to-login"
+            >
+              {t("sign-up:success.goToLogin")}
+            </Button>
+          </Grid>
+        </Grid>
+      </Container>
+    );
+  }
 
   return (
     <FormProvider {...methods}>
